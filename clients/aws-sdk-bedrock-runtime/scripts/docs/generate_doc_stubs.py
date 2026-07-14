@@ -166,10 +166,13 @@ class DocStubGenerator:
         if not client_class:
             raise ValueError(f"No class ending with 'Client' found in {package_name}.client")
 
-        config_class = config_module.members.get("Config")
-        plugin_alias = config_module.members.get("Plugin")
-        if not config_class or not plugin_alias:
-            raise ValueError(f"Missing Config or Plugin in {package_name}.config")
+        config_class = self._find_class_with_suffix(config_module, "Config")
+        if not config_class:
+            raise ValueError(f"No class ending with 'Config' found in {package_name}.config")
+
+        plugin_alias = self._find_member_with_suffix(config_module, "Plugin")
+        if not plugin_alias:
+            raise ValueError(f"No member ending with 'Plugin' found in {package_name}.config")
 
         config = TypeInfo(name=config_class.name, module_path=config_class.path)
         plugin = TypeInfo(name=plugin_alias.name, module_path=plugin_alias.path)
@@ -198,6 +201,13 @@ class DocStubGenerator:
         for cls in module.classes.values():
             if cls.name.endswith(suffix):
                 return cls
+        return None
+
+    def _find_member_with_suffix(self, module: Module, suffix: str) -> Object | None:
+        """Find a member in the module with a matching suffix."""
+        for member in module.members.values():
+            if member.name.endswith(suffix):
+                return member
         return None
 
     def _extract_operations(self, client_class: Class) -> list[OperationInfo]:
